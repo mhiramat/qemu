@@ -184,6 +184,10 @@ static QemuOptsList machine_opts = {
             .type = QEMU_OPT_STRING,
             .help = "Linux kernel command line",
         },{
+            .name = "skc",
+            .type = QEMU_OPT_STRING,
+            .help = "Linux kernel structured command line file",
+        },{
             .name = "dtb",
             .type = QEMU_OPT_STRING,
             .help = "Linux kernel device tree file",

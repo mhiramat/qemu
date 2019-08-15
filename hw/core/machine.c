@@ -293,6 +293,21 @@ static void machine_set_append(Object *obj, const char *value, Error **errp)
     ms->kernel_cmdline = g_strdup(value);
 }
 
+static char *machine_get_skc(Object *obj, Error **errp)
+{
+    MachineState *ms = MACHINE(obj);
+
+    return g_strdup(ms->skc);
+}
+
+static void machine_set_skc(Object *obj, const char *value, Error **errp)
+{
+    MachineState *ms = MACHINE(obj);
+
+    g_free(ms->skc);
+    ms->skc = g_strdup(value);
+}
+
 static char *machine_get_dtb(Object *obj, Error **errp)
 {
     MachineState *ms = MACHINE(obj);
@@ -835,6 +850,11 @@ static void machine_class_init(ObjectClass *oc, void *data)
     object_class_property_set_description(oc, "append",
         "Linux kernel command line", &error_abort);
 
+    object_class_property_add_str(oc, "skc",
+        machine_get_skc, machine_set_skc, &error_abort);
+    object_class_property_set_description(oc, "skc",
+        "Linux kernel structured command line", &error_abort);
+
     object_class_property_add_str(oc, "dtb",
         machine_get_dtb, machine_set_dtb, &error_abort);
     object_class_property_set_description(oc, "dtb",
@@ -967,6 +987,7 @@ static void machine_finalize(Object *obj)
     g_free(ms->kernel_filename);
     g_free(ms->initrd_filename);
     g_free(ms->kernel_cmdline);
+    g_free(ms->skc);
     g_free(ms->dtb);
     g_free(ms->dumpdtb);
     g_free(ms->dt_compatible);

@@ -269,6 +269,7 @@ struct MachineState {
     bool kernel_irqchip_required;
     bool kernel_irqchip_split;
     int kvm_shadow_mem;
+    char *skc;
     char *dtb;
     char *dumpdtb;
     int phandle_start;

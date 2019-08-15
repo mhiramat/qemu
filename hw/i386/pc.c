@@ -1176,7 +1176,7 @@ static void load_linux(PCMachineState *pcms,
 {
     uint16_t protocol;
     int setup_size, kernel_size, cmdline_size;
-    int dtb_size, setup_data_offset;
+    int dtb_size, skc_size, setup_data_offset;
     uint32_t initrd_max;
     uint8_t header[8192], *setup, *kernel;
     hwaddr real_addr, prot_addr, cmdline_addr, initrd_addr = 0;
@@ -1188,6 +1188,7 @@ static void load_linux(PCMachineState *pcms,
     const char *kernel_filename = machine->kernel_filename;
     const char *initrd_filename = machine->initrd_filename;
     const char *dtb_filename = machine->dtb;
+    const char *skc_filename = machine->skc;
     const char *kernel_cmdline = machine->kernel_cmdline;
 
     /* Align to 16 bytes as a paranoia measure */
@@ -1461,6 +1462,34 @@ static void load_linux(PCMachineState *pcms,
         setup_data->len = cpu_to_le32(dtb_size);
 
         load_image_size(dtb_filename, setup_data->data, dtb_size);
+    }
+
+    /* append skc to kernel */
+    if (skc_filename) {
+        if (protocol < 0x209) {	// TBD
+            fprintf(stderr, "qemu: Linux kernel too old to load a skc\n");
+            exit(1);
+        }
+
+        skc_size = get_image_size(skc_filename);
+        if (skc_size <= 0) {
+            fprintf(stderr, "qemu: error reading skc %s: %s\n",
+                    skc_filename, strerror(errno));
+            exit(1);
+        }
+
+        setup_data_offset = QEMU_ALIGN_UP(kernel_size, 16);
+        kernel_size = setup_data_offset + sizeof(struct setup_data) + skc_size;
+        kernel = g_realloc(kernel, kernel_size);
+
+        stq_p(header+0x250, prot_addr + setup_data_offset);
+
+        setup_data = (struct setup_data *)(kernel + setup_data_offset);
+        setup_data->next = 0;
+        setup_data->type = cpu_to_le32(SETUP_SKC);
+        setup_data->len = cpu_to_le32(skc_size);
+
+        load_image_size(skc_filename, setup_data->data, skc_size);
     }
 
     memcpy(setup, header, MIN(sizeof(header), setup_size));

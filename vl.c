@@ -3104,6 +3104,10 @@ int main(int argc, char **argv, char **envp)
                 qemu_opts_set(qemu_find_opts("machine"), 0, "dtb", optarg,
                               &error_abort);
                 break;
+            case QEMU_OPTION_skc:
+                qemu_opts_set(qemu_find_opts("machine"), 0, "skc", optarg,
+                              &error_abort);
+                break;
             case QEMU_OPTION_cdrom:
                 drive_add(IF_DEFAULT, 2, optarg, CDROM_OPTS);
                 break;

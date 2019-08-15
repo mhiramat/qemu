@@ -3259,6 +3259,15 @@ Use @var{file} as a device tree binary (dtb) image and pass it to the kernel
 on boot.
 ETEXI
 
+DEF("skc", HAS_ARG, QEMU_OPTION_skc, \
+    "-skc    file    use 'file' as structured kernel cmdline\n", QEMU_ARCH_ALL)
+STEXI
+@item -skc @var{file}
+@findex -skc
+Use @var{file} as a structured kernel cmdline file and pass it to the kernel
+on boot.
+ETEXI
+
 STEXI
 @end table
 ETEXI
