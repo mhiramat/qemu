@@ -1190,6 +1190,7 @@ static void load_linux(PCMachineState *pcms,
     const char *dtb_filename = machine->dtb;
     const char *skc_filename = machine->skc;
     const char *kernel_cmdline = machine->kernel_cmdline;
+    char *new_cmdline;
 
     /* Align to 16 bytes as a paranoia measure */
     cmdline_size = (strlen(kernel_cmdline)+16) & ~15;
@@ -1335,10 +1336,6 @@ static void load_linux(PCMachineState *pcms,
         initrd_max = pcms->below_4g_mem_size - pcmc->acpi_data_size - 1;
     }
 
-    fw_cfg_add_i32(fw_cfg, FW_CFG_CMDLINE_ADDR, cmdline_addr);
-    fw_cfg_add_i32(fw_cfg, FW_CFG_CMDLINE_SIZE, strlen(kernel_cmdline)+1);
-    fw_cfg_add_string(fw_cfg, FW_CFG_CMDLINE_DATA, kernel_cmdline);
-
     if (protocol >= 0x202) {
         stl_p(header+0x228, cmdline_addr);
     } else {
@@ -1466,31 +1463,39 @@ static void load_linux(PCMachineState *pcms,
 
     /* append skc to kernel */
     if (skc_filename) {
-        if (protocol < 0x209) {	// TBD
-            fprintf(stderr, "qemu: Linux kernel too old to load a skc\n");
-            exit(1);
-        }
-
         skc_size = get_image_size(skc_filename);
         if (skc_size <= 0) {
             fprintf(stderr, "qemu: error reading skc %s: %s\n",
                     skc_filename, strerror(errno));
             exit(1);
         }
+        if (skc_size >= 32 * 1024) {
+            fprintf(stderr, "qemu: skc %s is bigger than 32KB: %d\n",
+                    skc_filename, skc_size);
+            exit(1);
+        }
 
+	/* Load SKC as a part of setup_data */
         setup_data_offset = QEMU_ALIGN_UP(kernel_size, 16);
-        kernel_size = setup_data_offset + sizeof(struct setup_data) + skc_size;
+        kernel_size = setup_data_offset + skc_size;
         kernel = g_realloc(kernel, kernel_size);
+        load_image_size(skc_filename, kernel + setup_data_offset, skc_size);
 
-        stq_p(header+0x250, prot_addr + setup_data_offset);
-
-        setup_data = (struct setup_data *)(kernel + setup_data_offset);
-        setup_data->next = 0;
-        setup_data->type = cpu_to_le32(SETUP_SKC);
-        setup_data->len = cpu_to_le32(skc_size);
-
-        load_image_size(skc_filename, setup_data->data, skc_size);
+        cmdline_size += 32;
+	new_cmdline = malloc(cmdline_size);
+	strcpy(new_cmdline, kernel_cmdline);
+	snprintf(new_cmdline + strlen(kernel_cmdline), 32, " skc=0x%lx,%d",
+	        prot_addr + setup_data_offset, skc_size);
+	if (strlen(new_cmdline) > 255) {
+	    fprintf(stderr, "qemu: cmdline size is exceeded by skc option\n");
+	    exit(1);
+	}
+	kernel_cmdline = new_cmdline;
     }
+
+    fw_cfg_add_i32(fw_cfg, FW_CFG_CMDLINE_ADDR, cmdline_addr);
+    fw_cfg_add_i32(fw_cfg, FW_CFG_CMDLINE_SIZE, strlen(kernel_cmdline)+1);
+    fw_cfg_add_string(fw_cfg, FW_CFG_CMDLINE_DATA, kernel_cmdline);
 
     memcpy(setup, header, MIN(sizeof(header), setup_size));
 
