@@ -186,7 +186,7 @@ static QemuOptsList machine_opts = {
         },{
             .name = "skc",
             .type = QEMU_OPT_STRING,
-            .help = "Linux kernel structured command line file",
+            .help = "Linux kernel supplemental command line file",
         },{
             .name = "dtb",
             .type = QEMU_OPT_STRING,

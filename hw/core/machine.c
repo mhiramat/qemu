@@ -853,7 +853,7 @@ static void machine_class_init(ObjectClass *oc, void *data)
     object_class_property_add_str(oc, "skc",
         machine_get_skc, machine_set_skc, &error_abort);
     object_class_property_set_description(oc, "skc",
-        "Linux kernel structured command line", &error_abort);
+        "Linux kernel supplemental command line", &error_abort);
 
     object_class_property_add_str(oc, "dtb",
         machine_get_dtb, machine_set_dtb, &error_abort);
